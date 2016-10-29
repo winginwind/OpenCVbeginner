@@ -69,8 +69,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>D:\Program Files\OpenCV2.4.9\opencv\build\include;D:\Program Files\OpenCV2.4.9\opencv\build\include\opencv;D:\Program Files\OpenCV2.4.9\opencv\build\include\opencv2;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\Program Files\OpenCV2.4.9\opencv\build\x64\vc10\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>D:\Program File\opencv\build\include;D:\Program File\opencv\build\include\opencv;D:\Program File\opencv\build\include\opencv2;$(IncludePath)</IncludePath>
+    <LibraryPath>D:\Program File\opencv\build\x64\vc10\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -141,7 +141,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="stereocalibrate.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="savepicture.cpp" />
+    <ClCompile Include="stereocali.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="savepicture.h" />
+    <ClInclude Include="stereocali.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
