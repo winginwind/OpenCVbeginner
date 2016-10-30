@@ -143,11 +143,11 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="savepicture.cpp" />
-    <ClCompile Include="stereocali.cpp" />
+    <ClCompile Include="stereocalib.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="savepicture.h" />
-    <ClInclude Include="stereocali.h" />
+    <ClInclude Include="stereocalib.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

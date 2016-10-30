@@ -20,18 +20,56 @@ int SaveCaliPicture(void)
 	if(!cap2.isOpened()) {cout<<"-2"<<endl;return -2;}
 	namedWindow("L_image",1);
 	namedWindow("R_image",1);
-	Mat frame1,frame2;
+	//显示角点
+	//namedWindow("Corner_L",1);
+	//namedWindow("Corner_R",1);
+	Mat frameL,frameR;
+	Mat fdcrimgL,fdcrimgR;
+	Mat dwcrimgL,dwcrimgR;
+	int iresL,iresR;
+
+	int nx = 9;
+	int ny = 6;
+	int cornum = nx * ny;
+	Mat cornersL, cornersR;
+	int framenum = 1;
 	while (1)
 	{
+		cap1>>frameL;
+		cap2>>frameR;
+		if(!frameL.empty() && !frameR.empty()){
 
-		cap1>>frame1;
-		cap2>>frame2;
-		if(!frame1.empty() && !frame2.empty()){
+			cvtColor(frameL,fdcrimgL,CV_BGR2GRAY);
+			cvtColor(frameR,fdcrimgR,CV_BGR2GRAY);
+			if(waitKey(100)== 's'){
+				iresL = findChessboardCorners(fdcrimgL, cvSize(nx, ny),
+					cornersL ,CV_CALIB_CB_ADAPTIVE_THRESH |CV_CALIB_CB_NORMALIZE_IMAGE);  //归一化图像后进行自适应二值化
+				iresR = findChessboardCorners(fdcrimgR, cvSize(nx, ny),
+					cornersR ,CV_CALIB_CB_ADAPTIVE_THRESH |CV_CALIB_CB_NORMALIZE_IMAGE);  //归一化图像后进行自适应二值化
+				if (iresL == 1 && iresR == 1)
+				{
+					dwcrimgL = frameL.clone();
+					dwcrimgR = frameR.clone();
+					drawChessboardCorners(dwcrimgL, cvSize(nx, ny), cornersL, iresL);
+					drawChessboardCorners(dwcrimgR, cvSize(nx, ny), cornersR, iresR);
+					imshow("Corner_L", dwcrimgL);
+					imshow("Corner_R", dwcrimgR);
+					//保存图片
+					char imgname[64];
+					sprintf_s(imgname,"stereoData\\L%02d.jpg",framenum);
+					imwrite(imgname, frameL);
+					sprintf_s(imgname,"stereoData\\R%02d.jpg",framenum);
+					imwrite(imgname, frameR);
+					framenum++;
+				}
 
-			imshow("L_image",frame1);
-			imshow("R_image",frame2);
+			}
+			imshow("L_image",frameL);
+			imshow("R_image",frameR);
 		}			
-
+		if(framenum > 15){
+			break;
+		}
 		int c = waitKey(15);
 		if (c == 'p')
 		{
