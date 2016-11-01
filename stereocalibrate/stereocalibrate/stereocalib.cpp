@@ -24,9 +24,7 @@ http://tech.groups.yahoo.com/group/OpenCV/
 http://pr.willowgarage.com/wiki/OpenCV
 ************************************************** */
 
-#include "cv.h"
-#include "cxmisc.h"
-#include "highgui.h"
+
 #include "stereocalib.h"
 //#include "cvaux.h"
 #include <vector>
@@ -64,7 +62,7 @@ void StereoCalibrate::StereoCalib(const char* imageList, int nx, int ny, int use
 	bool isVerticalStereo = false;//OpenCV can handle left-right
 	//or up-down camera arrangements
 	const int maxScale = 1;
-	const float squareSize = 1.0f; //Set this to your actual square size
+	const float squareSize = 26.0f; //Set this to your actual square size
 	FILE* f = fopen(imageList, "rt");
 	int i, j, lr, nframes, n = nx*ny, N = 0;  //lr代表左视图或右视图索引
 	vector<string> imageNames[2];
@@ -73,18 +71,17 @@ void StereoCalibrate::StereoCalib(const char* imageList, int nx, int ny, int use
 	vector<int> npoints;  //每一帧中的角点数
 	vector<uchar> active[2];
 	vector<CvPoint2D32f> temp(n);
-	CvSize imageSize = { 0, 0 };
 	// ARRAY AND VECTOR STORAGE:
 	double M1[3][3], M2[3][3], D1[5], D2[5];
 	double R[3][3], T[3], E[3][3], F[3][3];
-	CvMat _M1 = cvMat(3, 3, CV_64F, M1);
-	CvMat _M2 = cvMat(3, 3, CV_64F, M2);
-	CvMat _D1 = cvMat(1, 5, CV_64F, D1);
-	CvMat _D2 = cvMat(1, 5, CV_64F, D2);
-	CvMat _R = cvMat(3, 3, CV_64F, R);
-	CvMat _T = cvMat(3, 1, CV_64F, T);
-	CvMat _E = cvMat(3, 3, CV_64F, E);
-	CvMat _F = cvMat(3, 3, CV_64F, F);
+	stereoParams.cameraParams1.cameraMatrix = cvMat(3, 3, CV_64F, M1);
+	stereoParams.cameraParams2.cameraMatrix = cvMat(3, 3, CV_64F, M2);
+	stereoParams.cameraParams1.distortionCoefficients = cvMat(1, 5, CV_64F, D1);
+	stereoParams.cameraParams2.distortionCoefficients = cvMat(1, 5, CV_64F, D2);
+	stereoParams.rotation = cvMat(3, 3, CV_64F, R);
+	stereoParams.translation = cvMat(3, 1, CV_64F, T);
+	stereoParams.essential = cvMat(3, 3, CV_64F, E);
+	stereoParams.foundational = cvMat(3, 3, CV_64F, F);
 	if (displayCorners)
 		cvNamedWindow("corners", 1);
 	// READ IN THE LIST OF CHESSBOARDS:
@@ -183,33 +180,64 @@ void StereoCalibrate::StereoCalib(const char* imageList, int nx, int ny, int use
 	CvMat _imagePoints1 = cvMat(1, N, CV_32FC2, &points[0][0]);    //左视图坐标
 	CvMat _imagePoints2 = cvMat(1, N, CV_32FC2, &points[1][0]);    //右视图坐标
 	CvMat _npoints = cvMat(1, npoints.size(), CV_32S, &npoints[0]);
-	cvSetIdentity(&_M1);//设置为单位阵
-	cvSetIdentity(&_M2);
-	cvZero(&_D1);
-	cvZero(&_D2);
-
-	// CALIBRATE THE STEREO CAMERAS
 	printf("Running stereo calibration ...");
+	//先进行单目标定
+	cvCalibrateCamera2(
+		&_objectPoints, &_imagePoints1,
+		&_npoints,  imageSize,
+		&stereoParams.cameraParams1.cameraMatrix,
+		&stereoParams.cameraParams1.distortionCoefficients,
+		NULL, NULL,0  //CV_CALIB_FIX_ASPECT_RATIO
+		);
+	cvCalibrateCamera2(
+		&_objectPoints, &_imagePoints2,
+		&_npoints,  imageSize,
+		&stereoParams.cameraParams2.cameraMatrix,
+		&stereoParams.cameraParams2.distortionCoefficients,
+		NULL, NULL,0  //CV_CALIB_FIX_ASPECT_RATIO
+		);
+
+	//cvSetIdentity(&_M1);//设置为单位阵
+	//cvSetIdentity(&_M2);
+	//cvZero(&_D1);
+	//cvZero(&_D2);
+
+	// CALIBRATE THE STEREO CAMERAS	
 	fflush(stdout);  //清空输出缓存区
 	cvStereoCalibrate(&_objectPoints, &_imagePoints1,
 		&_imagePoints2, &_npoints,
-		&_M1, &_D1, &_M2, &_D2,
-		imageSize, &_R, &_T, &_E, &_F,
+		&stereoParams.cameraParams1.cameraMatrix,
+		&stereoParams.cameraParams1.distortionCoefficients,
+		&stereoParams.cameraParams2.cameraMatrix,
+		&stereoParams.cameraParams2.distortionCoefficients,
+		imageSize,
+		&stereoParams.rotation,
+		&stereoParams.translation, 
+		&stereoParams.essential,
+		&stereoParams.foundational,
 		cvTermCriteria(CV_TERMCRIT_ITER +
 		CV_TERMCRIT_EPS, 100, 1e-5),
-		CV_CALIB_FIX_ASPECT_RATIO +
+		//CV_CALIB_FIX_ASPECT_RATIO +
 		CV_CALIB_ZERO_TANGENT_DIST +
-		CV_CALIB_SAME_FOCAL_LENGTH);
+		//CV_CALIB_FIX_PRINCIPAL_POINT+
+		//CV_CALIB_USE_INTRINSIC_GUESS+
+		CV_CALIB_FIX_ASPECT_RATIO+
+		CV_CALIB_SAME_FOCAL_LENGTH
+		//CV_CALIB_FIX_INTRINSIC+
+		//CALIB_FIX_K3
+		//CALIB_FIX_K4 + 
+		//CALIB_FIX_K5
+		);
 	printf(" done\n");
 	//保存标定参数
-	cvSave("M1.xml",&_M1);
-	cvSave("D1.xml",&_D1);
-	cvSave("M2.xml",&_M2);
-	cvSave("D2.xml",&_D2);
-	cvSave("R.xml",&_R);
-	cvSave("T.xml",&_T);
-	cvSave("E.xml",&_E);
-	cvSave("F.xml",&_F);
+	cvSave("M1.xml",&stereoParams.cameraParams1.cameraMatrix);
+	cvSave("D1.xml",&stereoParams.cameraParams1.distortionCoefficients);
+	cvSave("M2.xml",&stereoParams.cameraParams2.cameraMatrix);
+	cvSave("D2.xml",&stereoParams.cameraParams2.distortionCoefficients);
+	cvSave("R.xml",&stereoParams.rotation);
+	cvSave("T.xml",&stereoParams.translation);
+	cvSave("E.xml",&stereoParams.essential);
+	cvSave("F.xml",&stereoParams.foundational);
 	// CALIBRATION QUALITY CHECK
 	// because the output fundamental matrix implicitly
 	// includes all the output information,
@@ -219,14 +247,14 @@ void StereoCalibrate::StereoCalib(const char* imageList, int nx, int ny, int use
 	points[0].resize(N);
 	points[1].resize(N);
 	_imagePoints1 = cvMat(1, N, CV_32FC2, &points[0][0]);
-	_imagePoints2 = cvMat(1, N, CV_32FC2, &points[1][0]);  //
+	_imagePoints2 = cvMat(1, N, CV_32FC2, &points[1][0]);  
 	lines[0].resize(N);
 	lines[1].resize(N);
 	CvMat _L1 = cvMat(1, N, CV_32FC3, &lines[0][0]);
 	CvMat _L2 = cvMat(1, N, CV_32FC3, &lines[1][0]);
 	//计算校正前的误差
-	cvComputeCorrespondEpilines(&_imagePoints1, 1, &_F, &_L1);
-	cvComputeCorrespondEpilines(&_imagePoints2, 2, &_F, &_L2);
+	cvComputeCorrespondEpilines(&_imagePoints1, 1, &stereoParams.foundational, &_L1);
+	cvComputeCorrespondEpilines(&_imagePoints2, 2, &stereoParams.foundational, &_L2);
 	double avgErr = 0;
 	for (i = 0; i < N; i++)//判断对应点与极线的偏差
 	{
@@ -239,11 +267,15 @@ void StereoCalibrate::StereoCalib(const char* imageList, int nx, int ny, int use
 	printf("distorted avg err = %g\n", avgErr / (nframes*n));
 	//Always work in undistorted space
 	cvUndistortPoints(&_imagePoints1, &_imagePoints1,
-		&_M1, &_D1, 0, &_M1);
+		&stereoParams.cameraParams1.cameraMatrix,
+		&stereoParams.cameraParams1.distortionCoefficients, 0,
+		&stereoParams.cameraParams1.cameraMatrix);
 	cvUndistortPoints(&_imagePoints2, &_imagePoints2,
-		&_M2, &_D2, 0, &_M2);
-	cvComputeCorrespondEpilines(&_imagePoints1, 1, &_F, &_L1);
-	cvComputeCorrespondEpilines(&_imagePoints2, 2, &_F, &_L2);
+		&stereoParams.cameraParams2.cameraMatrix,
+		&stereoParams.cameraParams2.distortionCoefficients, 0,
+		&stereoParams.cameraParams2.cameraMatrix);
+	cvComputeCorrespondEpilines(&_imagePoints1, 1, &stereoParams.foundational, &_L1);
+	cvComputeCorrespondEpilines(&_imagePoints2, 2, &stereoParams.foundational, &_L2);
 	avgErr = 0;
 	for (i = 0; i < N; i++)//判断对应点与极线的偏差
 	{
@@ -255,6 +287,8 @@ void StereoCalibrate::StereoCalib(const char* imageList, int nx, int ny, int use
 	}
 	printf("avg err = %g\n", avgErr / (nframes*n));
 	//COMPUTE AND DISPLAY RECTIFICATION
+	GetStereoRectifyMat();
+	/*
 	if (showUndistorted)
 	{
 		CvMat* mx1 = cvCreateMat(imageSize.height,
@@ -279,6 +313,7 @@ void StereoCalibrate::StereoCalib(const char* imageList, int nx, int ny, int use
 		CvMat _R1 = cvMat(3, 3, CV_64F, R1);
 		CvMat _R2 = cvMat(3, 3, CV_64F, R2);
 		// IF BY CALIBRATED (BOUGUET'S METHOD)
+		
 		if (useUncalibrated == 0)
 		{
 			CvMat _P1 = cvMat(3, 4, CV_64F, P1);
@@ -286,7 +321,7 @@ void StereoCalibrate::StereoCalib(const char* imageList, int nx, int ny, int use
 			cvStereoRectify(&_M1, &_M2, &_D1, &_D2, imageSize,
 				&_R, &_T,
 				&_R1, &_R2, &_P1, &_P2, 0,
-				0/*CV_CALIB_ZERO_DISPARITY*/);
+				0);//CV_CALIB_ZERO_DISPARITY
 			isVerticalStereo = fabs(P2[1][3]) > fabs(P2[0][3]);
 			//Precompute maps for cvRemap()
 			cvInitUndistortRectifyMap(&_M1, &_D1, &_R1, &_P1, mx1, my1);
@@ -323,6 +358,7 @@ void StereoCalibrate::StereoCalib(const char* imageList, int nx, int ny, int use
 		}
 		else
 			assert(0);
+		
 		cvNamedWindow("rectified", 1);
 		// RECTIFY THE IMAGES AND FIND DISPARITY MAPS
 		if (!isVerticalStereo)
@@ -411,12 +447,62 @@ void StereoCalibrate::StereoCalib(const char* imageList, int nx, int ny, int use
 		cvReleaseMat(&disp);
 		cvReleaseMat(&pair);
 	}
+	*/
+}
+
+
+void StereoCalibrate::GetStereoRectifyMat(void)
+{
+	CvMat* mx1 = cvCreateMat(imageSize.height,
+		imageSize.width, CV_32F);
+	CvMat* my1 = cvCreateMat(imageSize.height,
+		imageSize.width, CV_32F);
+	CvMat* mx2 = cvCreateMat(imageSize.height,
+
+		imageSize.width, CV_32F);
+	CvMat* my2 = cvCreateMat(imageSize.height,
+		imageSize.width, CV_32F);
+	
+	double R1[3][3], R2[3][3], P1[3][4], P2[3][4];
+	CvMat _R1 = cvMat(3, 3, CV_64F, R1);
+	CvMat _R2 = cvMat(3, 3, CV_64F, R2);
+	// IF BY CALIBRATED (BOUGUET'S METHOD)
+
+	CvMat _P1 = cvMat(3, 4, CV_64F, P1);
+	CvMat _P2 = cvMat(3, 4, CV_64F, P2);
+	cvStereoRectify(&stereoParams.cameraParams1.cameraMatrix, 
+					&stereoParams.cameraParams2.cameraMatrix,
+					&stereoParams.cameraParams1.distortionCoefficients,
+					&stereoParams.cameraParams2.distortionCoefficients, 
+					imageSize,
+					&stereoParams.rotation, 
+					&stereoParams.translation,
+					&_R1, &_R2, &_P1, &_P2, 0,
+					0/*CV_CALIB_ZERO_DISPARITY*/);
+
+	//Precompute maps for cvRemap()
+	cvInitUndistortRectifyMap(&stereoParams.cameraParams1.cameraMatrix,
+							  &stereoParams.cameraParams1.distortionCoefficients,
+							  &_R1, &_P1, mx1, my1);
+	cvInitUndistortRectifyMap(&stereoParams.cameraParams2.cameraMatrix,
+							  &stereoParams.cameraParams2.distortionCoefficients,
+							  &_R2, &_P2, mx2, my2);
+
+	cvSave("mx1.xml", mx1);
+	cvSave("my1.xml", my1);
+	cvSave("mx2.xml", mx2);
+	cvSave("my2.xml", my2);
+
+	cvReleaseMat(&mx1);
+	cvReleaseMat(&my1);
+	cvReleaseMat(&mx2);
+	cvReleaseMat(&my2);
 }
 
 int StereoCalibrate::StereoCalibrateRectify(void)
 {
 	//标定函数
-	//StereoCalib("cali_list.txt", 9, 6, 0);  
+	StereoCalib("cali_list.txt", 9, 6, 0);  
 	//导入校正矩阵
 	CvMat*mx1 = (CvMat*)cvLoad("mx1.xml");  
 	CvMat*my1 = (CvMat*)cvLoad("my1.xml");

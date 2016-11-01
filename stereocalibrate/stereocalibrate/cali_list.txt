@@ -28,3 +28,13 @@ stereoData/L14.jpg
 stereoData/R14.jpg
 stereoData/L15.jpg
 stereoData/R15.jpg
+stereoData/L16.jpg
+stereoData/R16.jpg
+stereoData/L17.jpg
+stereoData/R17.jpg
+stereoData/L18.jpg
+stereoData/R18.jpg
+stereoData/L19.jpg
+stereoData/R19.jpg
+stereoData/L20.jpg
+stereoData/R20.jpg

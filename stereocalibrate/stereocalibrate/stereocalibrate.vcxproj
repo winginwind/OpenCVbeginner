@@ -142,11 +142,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="savepicture.cpp" />
+    <ClCompile Include="picturegrub.cpp" />
     <ClCompile Include="stereocalib.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="savepicture.h" />
+    <ClInclude Include="picturegrub.h" />
     <ClInclude Include="stereocalib.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

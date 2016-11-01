@@ -18,18 +18,18 @@
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="savepicture.cpp">
+    <ClCompile Include="stereocalib.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="stereocalib.cpp">
+    <ClCompile Include="picturegrub.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="savepicture.h">
+    <ClInclude Include="stereocalib.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="stereocalib.h">
+    <ClInclude Include="picturegrub.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
