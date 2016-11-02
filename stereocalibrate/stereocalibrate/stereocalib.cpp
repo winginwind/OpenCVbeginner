@@ -33,7 +33,7 @@ http://pr.willowgarage.com/wiki/OpenCV
 #include <stdio.h>
 #include <ctype.h>
 
-
+#include <iostream>
 using namespace std;
 using namespace cv;
 
@@ -368,6 +368,7 @@ void StereoCalibrate::StereoCalib(const char* imageList, int nx, int ny, int use
 			pair = cvCreateMat(imageSize.height * 2, imageSize.width,
 			CV_8UC3);
 		//Setup for finding stereo corrrespondences  
+
 		CvStereoBMState *BMState = cvCreateStereoBMState();
 		assert(BMState != 0);
 		BMState->preFilterSize = 41;
@@ -399,7 +400,7 @@ void StereoCalibrate::StereoCalib(const char* imageList, int nx, int ny, int use
 					// images are vertical. Stereo correspondence
 					// function does not support such a case.
 					cvFindStereoCorrespondenceBM(img1r, img2r, disp,
-						BMState);
+					BMState);
 					cvNormalize(disp, vdisp, 0, 256, CV_MINMAX);
 					cvNamedWindow("disparity");
 					cvShowImage("disparity", vdisp);
@@ -450,7 +451,7 @@ void StereoCalibrate::StereoCalib(const char* imageList, int nx, int ny, int use
 	*/
 }
 
-
+//获得校正需要的映射矩阵
 void StereoCalibrate::GetStereoRectifyMat(void)
 {
 	CvMat* mx1 = cvCreateMat(imageSize.height,
@@ -478,7 +479,7 @@ void StereoCalibrate::GetStereoRectifyMat(void)
 					&stereoParams.rotation, 
 					&stereoParams.translation,
 					&_R1, &_R2, &_P1, &_P2, 0,
-					0/*CV_CALIB_ZERO_DISPARITY*/);
+					0,0);
 
 	//Precompute maps for cvRemap()
 	cvInitUndistortRectifyMap(&stereoParams.cameraParams1.cameraMatrix,
@@ -492,6 +493,8 @@ void StereoCalibrate::GetStereoRectifyMat(void)
 	cvSave("my1.xml", my1);
 	cvSave("mx2.xml", mx2);
 	cvSave("my2.xml", my2);
+	cvSave("p1.xml", &_P1);
+	cvSave("p2.xml", &_P2);
 
 	cvReleaseMat(&mx1);
 	cvReleaseMat(&my1);
@@ -499,92 +502,28 @@ void StereoCalibrate::GetStereoRectifyMat(void)
 	cvReleaseMat(&my2);
 }
 
-int StereoCalibrate::StereoCalibrateRectify(void)
+//立体校正初始化(载入校正矩阵)
+void StereoCalibrate::InitStereoRectify(void)
 {
-	//标定函数
-	StereoCalib("cali_list.txt", 9, 6, 0);  
 	//导入校正矩阵
-	CvMat*mx1 = (CvMat*)cvLoad("mx1.xml");  
-	CvMat*my1 = (CvMat*)cvLoad("my1.xml");
-	CvMat*mx2 = (CvMat*)cvLoad("mx2.xml");
-	CvMat*my2 = (CvMat*)cvLoad("my2.xml");
-	//打开摄像头
-	CvCapture*capture1 = cvCreateCameraCapture(0); 
-	CvCapture*capture2 = cvCreateCameraCapture(1);
-
-	IplImage*left = cvQueryFrame(capture1);
-	IplImage*right = cvQueryFrame(capture2);
-
-	while (!left || !right)
-	{
-		left = cvQueryFrame(capture1);
-		right = cvQueryFrame(capture2);
-	}
-	CvSize imgSize = cvGetSize(left);
-	//CvMat* RawPair;
-	CvMat* RefPair;
-	CvMat part;
-	//RawPair = cvCreateMat(imgSize.height, imgSize.width * 2, CV_8UC3);
-	RefPair = cvCreateMat(imgSize.height, imgSize.width * 2, CV_8UC3);
-	cvNamedWindow("RefPair", 1);
-	cvMoveWindow("RefPair", 60, 60);
-	while (1)
-	{
-		left = cvQueryFrame(capture1);
-		right = cvQueryFrame(capture2);
-		
-		/*
-		cvGetCols(RawPair, &part, 0, imgSize.width);  
-		cvConvert(left, &part);
-		cvGetCols(RawPair, &part, imgSize.width,
-			imgSize.width * 2);
-		cvConvert(right, &part);
-
-		for (int j = 0; j < imgSize.height; j += 16)
-			cvLine(RawPair, cvPoint(0, j),
-			cvPoint(imgSize.width * 2, j),
-			CV_RGB(0, 255, 0));
-		cvShowImage("RawPair", RawPair);
-		*/
-
-		IplImage*t1 = cvCloneImage(left);
-		IplImage*t2 = cvCloneImage(right);
-		cvRemap(t1, left, mx1, my1);
-		cvRemap(t2, right, mx2, my2);
-		cvReleaseImage(&t1);
-		cvReleaseImage(&t2);
-
-
-		cvGetCols(RefPair, &part, 0, imgSize.width);  //
-		cvConvert(left, &part);
-		cvGetCols(RefPair, &part, imgSize.width,
-			imgSize.width * 2);
-		cvConvert(right, &part);
-		/*
-		for (int j = 0; j < imgSize.height; j += 16)
-			cvLine(RefPair, cvPoint(0, j),
-			cvPoint(imgSize.width * 2, j),
-			CV_RGB(0, 255, 0));
-		*/
-		cvShowImage("RefPair", RefPair);
-
-		//cvShowImage("left", left);
-		//cvShowImage("right", right);
-		int c = cvWaitKey(15);
-		if (c == 'p')
-		{
-			c = 0;
-			while (c != 'p'&&c != 27)
-			{
-				c = cvWaitKey(250);
-			}
-		}
-		if (c == 27)
-			break;
-	}
-	cvReleaseImage(&left);
-	cvReleaseImage(&right);
-	cvReleaseMat(&RefPair);
-	return 0;
+	rectifyParams.mx1 = *(CvMat*)cvLoad("mx1.xml");  
+	rectifyParams.my1 = *(CvMat*)cvLoad("my1.xml");
+	rectifyParams.mx2 = *(CvMat*)cvLoad("mx2.xml");
+	rectifyParams.my2 = *(CvMat*)cvLoad("my2.xml");
 }
+
+void StereoCalibrate::StereoRectify(IplImage *left, IplImage *right)
+{
+	IplImage*t1 = cvCloneImage(left);
+	IplImage*t2 = cvCloneImage(right);
+	cvRemap(t1, left, &rectifyParams.mx1, &rectifyParams.my1);
+	cvRemap(t2, right, &rectifyParams.mx2, &rectifyParams.my2);
+	cvReleaseImage(&t1);
+	cvReleaseImage(&t2);
+}
+
+
+	
+			
+
 

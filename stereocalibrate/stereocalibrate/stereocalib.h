@@ -18,20 +18,31 @@ struct StereoParams
 	CvMat			essential;		// ±æ÷ æÿ’Û
 	CvMat			foundational;	// ª˘¥°æÿ’Û
 };
+
+struct RectifyParams
+{
+	CvMat mx1;
+	CvMat my1;
+	CvMat mx2;
+	CvMat my2;
+};
 class StereoCalibrate{
 //variable
 private:
 	StereoParams stereoParams;
 	CvSize imageSize;
+	RectifyParams rectifyParams;
 //function
 private:
-	void StereoCalib(const char* imageList, int nx, int ny, int useUncalibrated);
+	
+	void GetStereoRectifyMat(void);
+
 public:
 	StereoCalibrate();
 	virtual ~StereoCalibrate();
-	int StereoCalibrateRectify(void);
-	void GetStereoRectifyMat(void);
-
+	void InitStereoRectify(void);
+	void StereoRectify(IplImage *left, IplImage *right);
+	void StereoCalib(const char* imageList, int nx, int ny, int useUncalibrated);
 };
 
 

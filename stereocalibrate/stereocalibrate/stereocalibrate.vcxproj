@@ -144,10 +144,12 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="picturegrub.cpp" />
     <ClCompile Include="stereocalib.cpp" />
+    <ClCompile Include="stereomatch.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="picturegrub.h" />
     <ClInclude Include="stereocalib.h" />
+    <ClInclude Include="stereomatch.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

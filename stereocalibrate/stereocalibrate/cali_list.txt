@@ -1,7 +1,7 @@
 stereoData/L01.jpg
 stereoData/R01.jpg
-stereoData/L02.jpg
-stereoData/R02.jpg
+#stereoData/L02.jpg
+#stereoData/R02.jpg
 stereoData/L03.jpg
 stereoData/R03.jpg
 stereoData/L04.jpg
