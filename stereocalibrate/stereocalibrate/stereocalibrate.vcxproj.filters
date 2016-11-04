@@ -27,6 +27,9 @@
     <ClCompile Include="stereomatch.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="pointcloud.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stereocalib.h">
@@ -36,6 +39,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="stereomatch.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="pointcloud.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

@@ -28,10 +28,16 @@ struct RectifyParams
 };
 class StereoCalibrate{
 //variable
+public:
+	double focal;
+	double baseline;
+	double cxl;
+	double cxr;
 private:
 	StereoParams stereoParams;
 	CvSize imageSize;
 	RectifyParams rectifyParams;
+
 //function
 private:
 	
@@ -43,6 +49,7 @@ public:
 	void InitStereoRectify(void);
 	void StereoRectify(IplImage *left, IplImage *right);
 	void StereoCalib(const char* imageList, int nx, int ny, int useUncalibrated);
+	void LoadCameraPara(void);
 };
 
 

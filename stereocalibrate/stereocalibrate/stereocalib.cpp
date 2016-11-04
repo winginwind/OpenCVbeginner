@@ -288,167 +288,7 @@ void StereoCalibrate::StereoCalib(const char* imageList, int nx, int ny, int use
 	printf("avg err = %g\n", avgErr / (nframes*n));
 	//COMPUTE AND DISPLAY RECTIFICATION
 	GetStereoRectifyMat();
-	/*
-	if (showUndistorted)
-	{
-		CvMat* mx1 = cvCreateMat(imageSize.height,
-			imageSize.width, CV_32F);
-		CvMat* my1 = cvCreateMat(imageSize.height,
-			imageSize.width, CV_32F);
-		CvMat* mx2 = cvCreateMat(imageSize.height,
 
-			imageSize.width, CV_32F);
-		CvMat* my2 = cvCreateMat(imageSize.height,
-			imageSize.width, CV_32F);
-		CvMat* img1r = cvCreateMat(imageSize.height,
-			imageSize.width, CV_8U);
-		CvMat* img2r = cvCreateMat(imageSize.height,
-			imageSize.width, CV_8U);
-		CvMat* disp = cvCreateMat(imageSize.height,
-			imageSize.width, CV_16S);
-		CvMat* vdisp = cvCreateMat(imageSize.height,
-			imageSize.width, CV_8U);
-		CvMat* pair;
-		double R1[3][3], R2[3][3], P1[3][4], P2[3][4];
-		CvMat _R1 = cvMat(3, 3, CV_64F, R1);
-		CvMat _R2 = cvMat(3, 3, CV_64F, R2);
-		// IF BY CALIBRATED (BOUGUET'S METHOD)
-		
-		if (useUncalibrated == 0)
-		{
-			CvMat _P1 = cvMat(3, 4, CV_64F, P1);
-			CvMat _P2 = cvMat(3, 4, CV_64F, P2);
-			cvStereoRectify(&_M1, &_M2, &_D1, &_D2, imageSize,
-				&_R, &_T,
-				&_R1, &_R2, &_P1, &_P2, 0,
-				0);//CV_CALIB_ZERO_DISPARITY
-			isVerticalStereo = fabs(P2[1][3]) > fabs(P2[0][3]);
-			//Precompute maps for cvRemap()
-			cvInitUndistortRectifyMap(&_M1, &_D1, &_R1, &_P1, mx1, my1);
-			cvInitUndistortRectifyMap(&_M2, &_D2, &_R2, &_P2, mx2, my2);
-		}
-		//OR ELSE HARTLEY'S METHOD
-		else if (useUncalibrated == 1 || useUncalibrated == 2)
-			// use intrinsic parameters of each camera, but
-			// compute the rectification transformation directly
-			// from the fundamental matrix
-		{
-			double H1[3][3], H2[3][3], iM[3][3];
-			CvMat _H1 = cvMat(3, 3, CV_64F, H1);
-			CvMat _H2 = cvMat(3, 3, CV_64F, H2);
-			CvMat _iM = cvMat(3, 3, CV_64F, iM);
-			//Just to show you could have independently used F
-			if (useUncalibrated == 2)
-				cvFindFundamentalMat(&_imagePoints1,
-				&_imagePoints2, &_F);
-			cvStereoRectifyUncalibrated(&_imagePoints1,
-				&_imagePoints2, &_F,
-				imageSize,
-				&_H1, &_H2, 3);
-			cvInvert(&_M1, &_iM);
-			cvMatMul(&_H1, &_M1, &_R1);
-			cvMatMul(&_iM, &_R1, &_R1);
-			cvInvert(&_M2, &_iM);
-			cvMatMul(&_H2, &_M2, &_R2);
-			cvMatMul(&_iM, &_R2, &_R2);
-			//Precompute map for cvRemap()
-			cvInitUndistortRectifyMap(&_M1, &_D1, &_R1, &_M1, mx1, my1);
-
-			cvInitUndistortRectifyMap(&_M2, &_D1, &_R2, &_M2, mx2, my2);
-		}
-		else
-			assert(0);
-		
-		cvNamedWindow("rectified", 1);
-		// RECTIFY THE IMAGES AND FIND DISPARITY MAPS
-		if (!isVerticalStereo)
-			pair = cvCreateMat(imageSize.height, imageSize.width * 2,
-			CV_8UC3);
-		else
-			pair = cvCreateMat(imageSize.height * 2, imageSize.width,
-			CV_8UC3);
-		//Setup for finding stereo corrrespondences  
-
-		CvStereoBMState *BMState = cvCreateStereoBMState();
-		assert(BMState != 0);
-		BMState->preFilterSize = 41;
-		BMState->preFilterCap = 31;
-		BMState->SADWindowSize = 41;
-		BMState->minDisparity = -64;
-		BMState->numberOfDisparities = 128;
-		BMState->textureThreshold = 10;
-		BMState->uniquenessRatio = 15;
-		for (i = 0; i < nframes; i++)
-		{
-			IplImage* img1 = cvLoadImage(imageNames[0][i].c_str(), 0);
-			IplImage* img2 = cvLoadImage(imageNames[1][i].c_str(), 0);
-			if (img1 && img2)
-			{
-				CvMat part;
-				cvRemap(img1, img1r, mx1, my1);
-				cvRemap(img2, img2r, mx2, my2);
-				cvSave("mx1.xml", mx1);
-				cvSave("my1.xml", my1);
-				cvSave("mx2.xml", mx2);
-				cvSave("my2.xml", my2);
-
-				if (!isVerticalStereo || useUncalibrated != 0)
-				{
-					// When the stereo camera is oriented vertically,
-					// useUncalibrated==0 does not transpose the
-					// image, so the epipolar lines in the rectified
-					// images are vertical. Stereo correspondence
-					// function does not support such a case.
-					cvFindStereoCorrespondenceBM(img1r, img2r, disp,
-					BMState);
-					cvNormalize(disp, vdisp, 0, 256, CV_MINMAX);
-					cvNamedWindow("disparity");
-					cvShowImage("disparity", vdisp);
-				}
-				if (!isVerticalStereo)
-				{
-					cvGetCols(pair, &part, 0, imageSize.width);  //
-					cvCvtColor(img1r, &part, CV_GRAY2BGR);
-					cvGetCols(pair, &part, imageSize.width,
-						imageSize.width * 2);
-					cvCvtColor(img2r, &part, CV_GRAY2BGR);
-					for (j = 0; j < imageSize.height; j += 16)
-						cvLine(pair, cvPoint(0, j),
-						cvPoint(imageSize.width * 2, j),
-						CV_RGB(0, 255, 0));
-				}
-				else
-				{
-					cvGetRows(pair, &part, 0, imageSize.height);
-					cvCvtColor(img1r, &part, CV_GRAY2BGR);
-					cvGetRows(pair, &part, imageSize.height,
-						imageSize.height * 2);
-					cvCvtColor(img2r, &part, CV_GRAY2BGR);
-					for (j = 0; j < imageSize.width; j += 16)
-						cvLine(pair, cvPoint(j, 0),
-						cvPoint(j, imageSize.height * 2),
-						CV_RGB(0, 255, 0));
-				}
-				cvShowImage("rectified", pair);
-				
-				if (cvWaitKey(500) == 27)
-					break;
-			}
-			cvReleaseImage(&img1);
-			cvReleaseImage(&img2);
-		}
-		
-		cvReleaseStereoBMState(&BMState);
-		cvReleaseMat(&mx1);
-		cvReleaseMat(&my1);
-		cvReleaseMat(&mx2);
-		cvReleaseMat(&my2);
-		cvReleaseMat(&img1r);
-		cvReleaseMat(&img2r);
-		cvReleaseMat(&disp);
-		cvReleaseMat(&pair);
-	}
-	*/
 }
 
 //获得校正需要的映射矩阵
@@ -464,13 +304,14 @@ void StereoCalibrate::GetStereoRectifyMat(void)
 	CvMat* my2 = cvCreateMat(imageSize.height,
 		imageSize.width, CV_32F);
 	
-	double R1[3][3], R2[3][3], P1[3][4], P2[3][4];
+	double R1[3][3], R2[3][3], P1[3][4], P2[3][4], Q[4][4];
 	CvMat _R1 = cvMat(3, 3, CV_64F, R1);
 	CvMat _R2 = cvMat(3, 3, CV_64F, R2);
 	// IF BY CALIBRATED (BOUGUET'S METHOD)
 
 	CvMat _P1 = cvMat(3, 4, CV_64F, P1);
 	CvMat _P2 = cvMat(3, 4, CV_64F, P2);
+	CvMat _Q = cvMat(4, 4, CV_64F, Q);
 	cvStereoRectify(&stereoParams.cameraParams1.cameraMatrix, 
 					&stereoParams.cameraParams2.cameraMatrix,
 					&stereoParams.cameraParams1.distortionCoefficients,
@@ -478,8 +319,8 @@ void StereoCalibrate::GetStereoRectifyMat(void)
 					imageSize,
 					&stereoParams.rotation, 
 					&stereoParams.translation,
-					&_R1, &_R2, &_P1, &_P2, 0,
-					0,0);
+					&_R1, &_R2, &_P1, &_P2, &_Q,
+					0,-1);
 
 	//Precompute maps for cvRemap()
 	cvInitUndistortRectifyMap(&stereoParams.cameraParams1.cameraMatrix,
@@ -495,6 +336,7 @@ void StereoCalibrate::GetStereoRectifyMat(void)
 	cvSave("my2.xml", my2);
 	cvSave("p1.xml", &_P1);
 	cvSave("p2.xml", &_P2);
+	cvSave("Q.xml",&_Q);
 
 	cvReleaseMat(&mx1);
 	cvReleaseMat(&my1);
@@ -522,8 +364,17 @@ void StereoCalibrate::StereoRectify(IplImage *left, IplImage *right)
 	cvReleaseImage(&t2);
 }
 
-
-	
-			
-
-
+//载入测距参数
+void StereoCalibrate::LoadCameraPara(void)
+{
+	stereoParams.cameraParams1.cameraMatrix = *(CvMat*)cvLoad("M1.xml");
+	stereoParams.cameraParams1.distortionCoefficients = *(CvMat*)cvLoad("D1.xml");
+	stereoParams.cameraParams2.cameraMatrix = *(CvMat*)cvLoad("M2.xml");
+	stereoParams.cameraParams2.distortionCoefficients = *(CvMat*)cvLoad("D2.xml");
+	stereoParams.rotation = *(CvMat*)cvLoad("R.xml");
+	stereoParams.translation =  *(CvMat*)cvLoad("T.xml");
+	stereoParams.essential = *(CvMat*)cvLoad("E.xml");
+	stereoParams.foundational = *(CvMat*)cvLoad("F.xml");
+	focal = CV_MAT_ELEM(stereoParams.cameraParams1.cameraMatrix, double, 0, 0);  //pixel
+	baseline = -CV_MAT_ELEM(stereoParams.translation, double, 0, 0);  //mm
+}
