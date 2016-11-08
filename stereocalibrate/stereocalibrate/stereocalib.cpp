@@ -35,7 +35,6 @@ http://pr.willowgarage.com/wiki/OpenCV
 
 #include <iostream>
 using namespace std;
-using namespace cv;
 
 StereoCalibrate::StereoCalibrate()
 {
@@ -320,7 +319,7 @@ void StereoCalibrate::GetStereoRectifyMat(void)
 					&stereoParams.rotation, 
 					&stereoParams.translation,
 					&_R1, &_R2, &_P1, &_P2, &_Q,
-					0,-1);
+					0,0);
 
 	//Precompute maps for cvRemap()
 	cvInitUndistortRectifyMap(&stereoParams.cameraParams1.cameraMatrix,
@@ -367,6 +366,7 @@ void StereoCalibrate::StereoRectify(IplImage *left, IplImage *right)
 //‘ÿ»Î≤‚æ‡≤Œ ˝
 void StereoCalibrate::LoadCameraPara(void)
 {
+
 	stereoParams.cameraParams1.cameraMatrix = *(CvMat*)cvLoad("M1.xml");
 	stereoParams.cameraParams1.distortionCoefficients = *(CvMat*)cvLoad("D1.xml");
 	stereoParams.cameraParams2.cameraMatrix = *(CvMat*)cvLoad("M2.xml");
@@ -375,6 +375,8 @@ void StereoCalibrate::LoadCameraPara(void)
 	stereoParams.translation =  *(CvMat*)cvLoad("T.xml");
 	stereoParams.essential = *(CvMat*)cvLoad("E.xml");
 	stereoParams.foundational = *(CvMat*)cvLoad("F.xml");
+	CvMat* q = (CvMat*)cvLoad("Q.xml");
+	projectq = Mat(q);
 	focal = CV_MAT_ELEM(stereoParams.cameraParams1.cameraMatrix, double, 0, 0);  //pixel
 	baseline = -CV_MAT_ELEM(stereoParams.translation, double, 0, 0);  //mm
 }

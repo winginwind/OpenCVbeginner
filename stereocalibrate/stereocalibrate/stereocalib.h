@@ -3,6 +3,7 @@
 #include "cv.h"
 #include "cxmisc.h"
 #include "highgui.h"
+using namespace cv;
 struct CameraParams
 {
 	CvMat		cameraMatrix;			// 摄像机矩阵
@@ -17,6 +18,7 @@ struct StereoParams
 	CvMat			translation;	// 平移向量
 	CvMat			essential;		// 本质矩阵
 	CvMat			foundational;	// 基础矩阵
+	
 };
 
 struct RectifyParams
@@ -33,6 +35,7 @@ public:
 	double baseline;
 	double cxl;
 	double cxr;
+	Mat projectq;      //投影矩阵
 private:
 	StereoParams stereoParams;
 	CvSize imageSize;

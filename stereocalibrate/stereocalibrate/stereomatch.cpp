@@ -17,9 +17,9 @@ void StereMatch::InitBMMatch(void)
 	bm.state->preFilterSize = 13;
 	bm.state->SADWindowSize = 13;
 	bm.state->minDisparity = 0;
-	bm.state->numberOfDisparities = 160;
+	bm.state->numberOfDisparities = 144;
 	bm.state->textureThreshold = 10;
-	bm.state->uniquenessRatio = 20;
+	bm.state->uniquenessRatio = 15;
 	bm.state->speckleWindowSize = 100;
 	bm.state->speckleRange = 32;
 	bm.state->disp12MaxDiff = 1;

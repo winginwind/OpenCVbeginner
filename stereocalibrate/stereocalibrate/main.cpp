@@ -10,8 +10,11 @@ using namespace std;
 #define STEREO_BMMATCH 0
 #define STEREO_SGBMMATCH 0
 #define STEREO_GCMATCH 0
-#define DISPLAY 0
-#define SINGLE_FRAME
+#define POINTCLOUD 0
+//#define FRAMEDIFF
+//#define BACKGROUNGDIFF
+#define DISPLAY 1
+//#define SINGLE_FRAME
 
 void mouseHandler(int event, int x, int y, int flags, void* param);	//handling mouse events
 StereoCalibrate StCab;
@@ -43,25 +46,23 @@ int main(void)
 	}
 	
 	StCab.LoadCameraPara();
+
 #ifdef SINGLE_FRAME
 	Stmatch.InitBMMatch();
 	cvNamedWindow("disparity",0);
 	cvSetMouseCallback("disparity", mouseHandler, NULL);
 	Stmatch.bm(leftg, rightg, gdisp);
 	normalize(gdisp, gvdisp, 0, 255, NORM_MINMAX, CV_8UC1);
-	PointCld.getPointClouds(gdisp);
+	imshow("disparity", gvdisp);	
+	//得到3D电云
+	PointCld.getPointClouds(gdisp,StCab.projectq);
 	PointCld.savePointClouds();
-	
-	while (1)
-	{
-		//PointCld.detectObject();
-		imshow("disparity", gvdisp);	
-		if (cvWaitKey(10) == 27)
-		{
-			return 0;
-		}
-	}
+    //检测物体
+	PointCld.detectObject();	
+	if(cvWaitKey(0) == 27) return 0;
 #endif
+
+
 	//显示结果
 	if (DISPLAY)
 	{
@@ -100,14 +101,28 @@ int main(void)
 			cvMoveWindow("disparity", 60, 60);
 			cvSetMouseCallback("disparity", mouseHandler, NULL);
 			
-		}
-	
+		}	
 		if (STEREO_SGBMMATCH)
 		{
 			Stmatch.InitSGBMMatch();
 			cvNamedWindow("disparity");
 			cvMoveWindow("disparity", 60, 60);
 		}
+
+#ifdef FRAMEDIFF
+		Mat matLeft,matleftPre,matDiffFrame,matLeftGray;
+		bool firstFrame = true;
+		Mat element = getStructuringElement(MORPH_RECT,Size(3,3));  
+#endif
+
+#ifdef BACKGROUNGDIFF
+		Mat matLeft;
+		Mat matLeftGray;
+		Mat matFr;
+		Mat matBk,matshowbk;
+		bool firstFrame = true;
+#endif
+
 		while (1)
 		{
 			
@@ -121,6 +136,43 @@ int main(void)
 			//	cvSaveImage("stereoData\\left.jpg",left);
 			//	cvSaveImage("stereoData\\right.jpg",right);
 			//}
+#ifdef FRAMEDIFF
+			matLeft = Mat(left);
+			cvtColor(matLeft, matLeftGray, CV_RGB2GRAY);
+			if (true == firstFrame){
+				matleftPre = matLeftGray.clone();
+				firstFrame = false;
+			}else{
+				absdiff(matLeftGray, matleftPre, matDiffFrame);
+				threshold(matDiffFrame, matDiffFrame, 20, 255, CV_THRESH_BINARY);
+				matleftPre = matLeftGray.clone();
+				medianBlur(matDiffFrame,matDiffFrame,3);     //中值滤波法  
+				//dilate(matDiffFrame,matDiffFrame,element);  //膨胀
+				imshow("diff",matDiffFrame);
+			}
+#endif
+
+#ifdef BACKGROUNGDIFF
+			matLeft = Mat(left);
+			cvtColor(matLeft, matLeftGray, CV_RGB2GRAY);
+			imshow("frame", matLeftGray);
+			matLeftGray.convertTo(matLeftGray, CV_32F);
+			if (true == firstFrame){
+				matBk = matLeftGray.clone();  //记录背景							
+				firstFrame = false;
+			}else{
+				GaussianBlur(matLeftGray,matLeftGray,Size(5,5),0);  //高斯滤波
+				absdiff(matLeftGray, matBk, matFr);  //减去背景得到前景
+				threshold(matFr, matFr, 50, 255, CV_THRESH_BINARY); 
+				//accumulateWeighted(matLeftGray, matBk, 0.001);  //更新背景
+				namedWindow("background",0);
+				namedWindow("foreground",0);
+				matBk.convertTo(matshowbk,CV_8U);
+				imshow("background", matshowbk);    //显示背景
+				imshow("foreground", matFr);    //显示前景
+			}
+#endif
+
 			if (STEREO_RECTIFY){
 				StCab.StereoRectify(left, right);
 			
@@ -136,7 +188,6 @@ int main(void)
 				//imshow("disparity", vdisp);
 				Stmatch.vdisp = vdisp;
 				imshow("disparity", vdisp);	
-
 			}
 			if (STEREO_SGBMMATCH)
 			{
@@ -153,6 +204,14 @@ int main(void)
 				cvShowImage("disparity", vdisp);
 				cvReleaseMat(&vdisp);
 			}
+			if (POINTCLOUD)
+			{
+				PointCld.getPointClouds(Stmatch.disp, StCab.projectq);
+				//检测物体
+				Mat mleft(left);
+				PointCld.detectObject(mleft);	
+			}
+
 			
 			cvGetCols(RefPair, &part, 0, imgSize.width);  
 			cvConvert(left, &part);
@@ -165,9 +224,8 @@ int main(void)
 				cvPoint(imgSize.width * 2, j),
 				CV_RGB(0, 255, 0));
 			
-			cvShowImage("RefPair", RefPair);
-
-			
+			//cvShowImage("RefPair", RefPair);
+		
 			int c = cvWaitKey(10);
 			if (c == 'p')
 			{
@@ -191,16 +249,22 @@ int main(void)
 bool left_mouse = false;
 void mouseHandler(int event, int x, int y, int flags, void *param){
 	Mat_<short>::iterator it;
-	it = gdisp.begin<short>();
-
+	it = Stmatch.disp.begin<short>();
+	//Mat_<float>::iterator itrd,itrx,itry;
+	//itrd = PointCld.mat_depth.begin<float>();
+	//itrx = PointCld.mat_phyx.begin<float>();
+	//itry = PointCld.mat_phyy.begin<float>();
+	//int pcols =  PointCld.mat_depth.cols;
 	if (event == CV_EVENT_LBUTTONDOWN)
 	{
-		cout << "x:" << x<< "y:" << y << endl;
+		cout << "pixel_x:" << x<< "pixel_y:" << y << endl;
 		double dis;
-		dis = (StCab.baseline * StCab.focal) /  (double)(*(it + y * gdisp.cols + x)) * 16.0;
-
+		dis = (StCab.baseline * StCab.focal) /  (double)(*(it + y * Stmatch.disp.cols + x)) * 16.0;
 		printf("distance of this object is: %lf \n", dis);
-
+		double phyx,phyy,phyz;
+		//cout << "x:" << *(itrx + y*pcols + x) << " ";
+		//cout << "y:" << *(itry + y*pcols + x) << " ";
+		//cout << "y:" << *(itrd + y*pcols + x) << endl;
 		left_mouse = true;
 	}
 	else if (event == CV_EVENT_LBUTTONUP)
