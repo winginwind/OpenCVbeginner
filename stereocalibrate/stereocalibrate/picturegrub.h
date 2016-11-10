@@ -8,7 +8,7 @@ public:
 	PictureGrub();
 	~PictureGrub();
 	int SaveCaliPicture(void);
+	void SaveSingeFrame(IplImage* pframe1, IplImage* pframe2);
 };
-
 
 #endif

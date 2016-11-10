@@ -142,14 +142,18 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="opticaltrack.cpp" />
     <ClCompile Include="picturegrub.cpp" />
     <ClCompile Include="pointcloud.cpp" />
+    <ClCompile Include="segmentation.cpp" />
     <ClCompile Include="stereocalib.cpp" />
     <ClCompile Include="stereomatch.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="opticaltrack.h" />
     <ClInclude Include="picturegrub.h" />
     <ClInclude Include="pointcloud.h" />
+    <ClInclude Include="segmentation.h" />
     <ClInclude Include="stereocalib.h" />
     <ClInclude Include="stereomatch.h" />
   </ItemGroup>

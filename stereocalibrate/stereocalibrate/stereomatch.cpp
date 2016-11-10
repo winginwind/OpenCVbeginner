@@ -17,7 +17,7 @@ void StereMatch::InitBMMatch(void)
 	bm.state->preFilterSize = 13;
 	bm.state->SADWindowSize = 13;
 	bm.state->minDisparity = 0;
-	bm.state->numberOfDisparities = 144;
+	bm.state->numberOfDisparities = 128;
 	bm.state->textureThreshold = 10;
 	bm.state->uniquenessRatio = 15;
 	bm.state->speckleWindowSize = 100;
@@ -92,3 +92,4 @@ void StereMatch::GCMatch(IplImage *img1, IplImage *img2, CvMat *vdisp)
 	//cvNormalize(ldisp, vdisp, 0, 256, CV_MINMAX);	
 	cvReleaseStereoGCState( &state );  
 }
+

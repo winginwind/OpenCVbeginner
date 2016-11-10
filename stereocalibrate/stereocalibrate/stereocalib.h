@@ -53,6 +53,7 @@ public:
 	void StereoRectify(IplImage *left, IplImage *right);
 	void StereoCalib(const char* imageList, int nx, int ny, int useUncalibrated);
 	void LoadCameraPara(void);
+	void CalCalibRectifyError(IplImage* imgl, IplImage* imgr);
 };
 
 

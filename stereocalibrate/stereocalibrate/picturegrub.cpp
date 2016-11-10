@@ -93,3 +93,11 @@ int PictureGrub::SaveCaliPicture(void)
 	}	
 	return 0;
 }
+
+void PictureGrub::SaveSingeFrame(IplImage* pframe1, IplImage* pframe2){
+	if (cvWaitKey(10) == 's')
+	{
+		cvSaveImage("stereoData\\left.jpg",pframe1);
+		cvSaveImage("stereoData\\right.jpg",pframe2);
+	}
+}

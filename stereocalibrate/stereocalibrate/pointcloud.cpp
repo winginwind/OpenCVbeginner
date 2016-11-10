@@ -53,7 +53,8 @@ void PointCloud::detectObject(Mat &image)
 	erode(depthThresh, depthThresh, element,Point(-1,-1),3);	// Í¼Ïñ¸¯Ê´
 	depthThresh.convertTo(depthThresh, CV_8UC1);
 	namedWindow("depthThresh",0);
-	imshow("depthThresh",depthThresh);
+	//imshow("depthThresh",depthThresh);
+
 	vector< vector<Point> > contours;	// ÎïÌåÂÖÀªµãÁ´
 	findContours(depthThresh, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
 	//·ÖÎöÂÖÀª
@@ -66,7 +67,7 @@ void PointCloud::detectObject(Mat &image)
 		{
 			double phyx, phyy, depth;
 			drawContours(mask, contours, objid, cv::Scalar(255), -1);
-			//imshow("mask",mask);
+			imshow("mask",mask);
 			double minVal = 0, maxVal = 0;
 			Point minPos,maxPos;
 			minMaxLoc(mat_depth, &minVal, &maxVal, &minPos, &maxPos,mask);

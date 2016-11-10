@@ -30,6 +30,12 @@
     <ClCompile Include="pointcloud.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="segmentation.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="opticaltrack.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stereocalib.h">
@@ -42,6 +48,12 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="pointcloud.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="segmentation.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="opticaltrack.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

@@ -2,19 +2,22 @@
 #include "picturegrub.h"
 #include "stereomatch.h"
 #include "pointcloud.h"
+#include "segmentation.h"
+#include "opticaltrack.h"
 using namespace std;
 
 #define SAVE_PIC 0
 #define STEREO_CALIB 0
 #define STEREO_RECTIFY 0
 #define STEREO_BMMATCH 0
-#define STEREO_SGBMMATCH 0
-#define STEREO_GCMATCH 0
-#define POINTCLOUD 0
-//#define FRAMEDIFF
-//#define BACKGROUNGDIFF
-#define DISPLAY 1
-//#define SINGLE_FRAME
+#define POINTCLOUD 0   //获得点云数据
+//#define FRAMEDIFF    //使用帧差法
+//#define BACKGROUNGDIFF //使用背景差分法
+#define OPTICALFLOW   //使用光流法
+#define DISPLAY 0
+//#define SINGLE_FRAME  //做简单测试
+
+
 
 void mouseHandler(int event, int x, int y, int flags, void* param);	//handling mouse events
 StereoCalibrate StCab;
@@ -26,16 +29,22 @@ Mat gdisp;
 Mat gvdisp;
 
 #ifdef SINGLE_FRAME
-	Mat leftg = imread("stereoData\\left.jpg",0);
-	Mat rightg = imread("stereoData\\right.jpg",0);
+	//Mat leftg = imread("stereoData\\left.jpg",0);
+	//Mat rightg = imread("stereoData\\right.jpg",0);
 	//Mat leftg = imread("stereoData\\tsukuba_l.png",0);
 	//Mat rightg = imread("stereoData\\tsukuba_r.png",0);
+	Mat imgA = imread("stereoData\\OpticalFlow0.jpg",CV_LOAD_IMAGE_GRAYSCALE);
+	Mat imgB = imread("stereoData\\OpticalFlow1.jpg",CV_LOAD_IMAGE_GRAYSCALE);
+	Mat imgC = imread("stereoData\\OpticalFlow1.jpg",CV_LOAD_IMAGE_UNCHANGED);
+
 #endif
 
 
 
 int main(void)
 {
+	Segmentation Segmtn(20,16,false);
+	OpticalTrack OptFlowTrack;
 	//保存用于标定的照片
 	if(SAVE_PIC){
 		PicGrub.SaveCaliPicture();
@@ -48,6 +57,7 @@ int main(void)
 	StCab.LoadCameraPara();
 
 #ifdef SINGLE_FRAME
+	/*
 	Stmatch.InitBMMatch();
 	cvNamedWindow("disparity",0);
 	cvSetMouseCallback("disparity", mouseHandler, NULL);
@@ -59,7 +69,12 @@ int main(void)
 	PointCld.savePointClouds();
     //检测物体
 	PointCld.detectObject();	
-	if(cvWaitKey(0) == 27) return 0;
+	*/
+	OptFlowTrack.SingleLKTrack(imgA,imgB,imgC);
+	imshow("cornerA", imgA);
+	imshow("cornerB", imgB);
+	imshow("cornerline", imgC);
+	if(waitKey(0) == 27) return 0;
 #endif
 
 
@@ -83,14 +98,15 @@ int main(void)
 		CvSize imgSize = cvGetSize(left);
 		CvMat* RefPair;
 		CvMat part;
-		RefPair = cvCreateMat(imgSize.height, imgSize.width * 2, CV_8UC3);
-		cvNamedWindow("RefPair", 1);
-		cvMoveWindow("RefPair", 60, 60);
+		
 		//进行校正
 		if (STEREO_RECTIFY)
 		{
 			StCab.InitStereoRectify();
 			cout << "进行校正" << endl;
+			RefPair = cvCreateMat(imgSize.height, imgSize.width * 2, CV_8UC3);
+			cvNamedWindow("RefPair", 1);
+			cvMoveWindow("RefPair", 60, 60);
 		}
 		//进行BM算法计算视差
 		if (STEREO_BMMATCH)
@@ -99,89 +115,80 @@ int main(void)
 			cout << "BM算法计算视差" << endl;
 			cvNamedWindow("disparity");
 			cvMoveWindow("disparity", 60, 60);
-			cvSetMouseCallback("disparity", mouseHandler, NULL);
-			
-		}	
-		if (STEREO_SGBMMATCH)
-		{
-			Stmatch.InitSGBMMatch();
-			cvNamedWindow("disparity");
-			cvMoveWindow("disparity", 60, 60);
+			//cvSetMouseCallback("disparity", mouseHandler, NULL);			
 		}
 
 #ifdef FRAMEDIFF
-		Mat matLeft,matleftPre,matDiffFrame,matLeftGray;
-		bool firstFrame = true;
-		Mat element = getStructuringElement(MORPH_RECT,Size(3,3));  
+		Segmtn.InitFrameDiff();
+		cout << "帧差法" << endl;
+		cvNamedWindow("diffframe");
+		cvMoveWindow("diffframe", 60, 60);
 #endif
 
 #ifdef BACKGROUNGDIFF
-		Mat matLeft;
-		Mat matLeftGray;
-		Mat matFr;
-		Mat matBk,matshowbk;
-		bool firstFrame = true;
+		Segmtn.InitBkgSub();
+		namedWindow("foreground");
+		moveWindow("foreground", 60, 60);
 #endif
 
+#ifdef OPTICALFLOW
+		OptFlowTrack.InitLKTrack();
+		namedWindow("flow");
+		moveWindow("flow", 60, 60);
+#endif
 		while (1)
-		{
-			
+		{		
 			left = cvQueryFrame(capture1);
-			right = cvQueryFrame(capture2);
-
+			right = cvQueryFrame(capture2);			
 			//cvShowImage("left", left);
 			//cvShowImage("right", right);
-			//if (cvWaitKey(10) == 's')
-			//{
-			//	cvSaveImage("stereoData\\left.jpg",left);
-			//	cvSaveImage("stereoData\\right.jpg",right);
-			//}
+			//用于保存单张图片
+			//PicGrub.SaveSingeFrame(left,right);
+
 #ifdef FRAMEDIFF
-			matLeft = Mat(left);
-			cvtColor(matLeft, matLeftGray, CV_RGB2GRAY);
-			if (true == firstFrame){
-				matleftPre = matLeftGray.clone();
-				firstFrame = false;
-			}else{
-				absdiff(matLeftGray, matleftPre, matDiffFrame);
-				threshold(matDiffFrame, matDiffFrame, 20, 255, CV_THRESH_BINARY);
-				matleftPre = matLeftGray.clone();
-				medianBlur(matDiffFrame,matDiffFrame,3);     //中值滤波法  
-				//dilate(matDiffFrame,matDiffFrame,element);  //膨胀
-				imshow("diff",matDiffFrame);
+			Mat matleft = Mat(left);
+			Segmtn.CalDiffFrame(matleft);
+			if(!Segmtn.diffFrame.empty()){
+				imshow("diffframe", Segmtn.diffFrame);
 			}
 #endif
 
 #ifdef BACKGROUNGDIFF
-			matLeft = Mat(left);
-			cvtColor(matLeft, matLeftGray, CV_RGB2GRAY);
-			imshow("frame", matLeftGray);
-			matLeftGray.convertTo(matLeftGray, CV_32F);
-			if (true == firstFrame){
-				matBk = matLeftGray.clone();  //记录背景							
-				firstFrame = false;
-			}else{
-				GaussianBlur(matLeftGray,matLeftGray,Size(5,5),0);  //高斯滤波
-				absdiff(matLeftGray, matBk, matFr);  //减去背景得到前景
-				threshold(matFr, matFr, 50, 255, CV_THRESH_BINARY); 
-				//accumulateWeighted(matLeftGray, matBk, 0.001);  //更新背景
-				namedWindow("background",0);
-				namedWindow("foreground",0);
-				matBk.convertTo(matshowbk,CV_8U);
-				imshow("background", matshowbk);    //显示背景
-				imshow("foreground", matFr);    //显示前景
-			}
+			Mat matLeft = Mat(left);			
+			Segmtn.BkgSuntract(matLeft);
+			imshow("test",matLeft);
+			if (!Segmtn.FrFrameb.empty())
+			{
+				imshow("foreground", Segmtn.FrFrameb);
+			}			
+#endif
+
+#ifdef OPTICALFLOW
+			Mat matleft = Mat(left);
+			OptFlowTrack.CtnLKTrack(matleft);
+			imshow("flow", matleft);
+
 #endif
 
 			if (STEREO_RECTIFY){
 				StCab.StereoRectify(left, right);
-			
+				cvGetCols(RefPair, &part, 0, imgSize.width);  
+				cvConvert(left, &part);
+				cvGetCols(RefPair, &part, imgSize.width,
+					imgSize.width * 2);
+				cvConvert(right, &part);
+
+				for (int j = 0; j < imgSize.height; j += 16){
+					cvLine(RefPair, cvPoint(0, j),
+					cvPoint(imgSize.width * 2, j),
+					CV_RGB(0, 255, 0));
+				}
+				cvShowImage("RefPair", RefPair);		
 			}
 			if (STEREO_BMMATCH)
 			{
 				clock_t tStart = clock();
-				Mat vdisp(imgSize.height,
-					imgSize.width, CV_8U);
+				Mat vdisp(imgSize.height, imgSize.width, CV_8U);
 				Stmatch.BMMatch(left, right, vdisp);
 				clock_t tPerFrame = clock() - tStart;
 				//cout << tPerFrame << endl;			
@@ -189,43 +196,13 @@ int main(void)
 				Stmatch.vdisp = vdisp;
 				imshow("disparity", vdisp);	
 			}
-			if (STEREO_SGBMMATCH)
-			{
-				Mat vdisp(imgSize.height,
-					imgSize.width, CV_8U);
-				Stmatch.SGBMMatch(left,right,vdisp);
-				imshow("disparity", vdisp);	
-			}
-			if (STEREO_GCMATCH)
-			{
-				CvMat* vdisp = cvCreateMat(imgSize.height,
-					imgSize.width, CV_8U);
-				Stmatch.GCMatch(left, right, vdisp);
-				cvShowImage("disparity", vdisp);
-				cvReleaseMat(&vdisp);
-			}
 			if (POINTCLOUD)
 			{
 				PointCld.getPointClouds(Stmatch.disp, StCab.projectq);
 				//检测物体
 				Mat mleft(left);
 				PointCld.detectObject(mleft);	
-			}
-
-			
-			cvGetCols(RefPair, &part, 0, imgSize.width);  
-			cvConvert(left, &part);
-			cvGetCols(RefPair, &part, imgSize.width,
-				imgSize.width * 2);
-			cvConvert(right, &part);
-			
-			for (int j = 0; j < imgSize.height; j += 16)
-				cvLine(RefPair, cvPoint(0, j),
-				cvPoint(imgSize.width * 2, j),
-				CV_RGB(0, 255, 0));
-			
-			//cvShowImage("RefPair", RefPair);
-		
+			}	
 			int c = cvWaitKey(10);
 			if (c == 'p')
 			{
@@ -245,6 +222,7 @@ int main(void)
 	}
 	return 0;
 }
+
 
 bool left_mouse = false;
 void mouseHandler(int event, int x, int y, int flags, void *param){
