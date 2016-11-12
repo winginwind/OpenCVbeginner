@@ -4,6 +4,7 @@
 #include "pointcloud.h"
 #include "segmentation.h"
 #include "opticaltrack.h"
+#include "nonfree/features2d.hpp"
 using namespace std;
 
 #define SAVE_PIC 0
@@ -13,9 +14,9 @@ using namespace std;
 #define POINTCLOUD 0   //获得点云数据
 //#define FRAMEDIFF    //使用帧差法
 //#define BACKGROUNGDIFF //使用背景差分法
-#define OPTICALFLOW   //使用光流法
+//#define OPTICALFLOW   //使用光流法
 #define DISPLAY 0
-//#define SINGLE_FRAME  //做简单测试
+#define SINGLE_FRAME  //做简单测试
 
 
 
@@ -29,13 +30,13 @@ Mat gdisp;
 Mat gvdisp;
 
 #ifdef SINGLE_FRAME
-	//Mat leftg = imread("stereoData\\left.jpg",0);
-	//Mat rightg = imread("stereoData\\right.jpg",0);
+	Mat leftg = imread("stereoData\\left.jpg",-1);
+	Mat rightg = imread("stereoData\\right.jpg",-1);
 	//Mat leftg = imread("stereoData\\tsukuba_l.png",0);
 	//Mat rightg = imread("stereoData\\tsukuba_r.png",0);
-	Mat imgA = imread("stereoData\\OpticalFlow0.jpg",CV_LOAD_IMAGE_GRAYSCALE);
-	Mat imgB = imread("stereoData\\OpticalFlow1.jpg",CV_LOAD_IMAGE_GRAYSCALE);
-	Mat imgC = imread("stereoData\\OpticalFlow1.jpg",CV_LOAD_IMAGE_UNCHANGED);
+	//Mat imgA = imread("stereoData\\OpticalFlow0.jpg",CV_LOAD_IMAGE_GRAYSCALE);
+	//Mat imgB = imread("stereoData\\OpticalFlow1.jpg",CV_LOAD_IMAGE_GRAYSCALE);
+	//Mat imgC = imread("stereoData\\OpticalFlow1.jpg",CV_LOAD_IMAGE_UNCHANGED);
 
 #endif
 
@@ -68,12 +69,35 @@ int main(void)
 	PointCld.getPointClouds(gdisp,StCab.projectq);
 	PointCld.savePointClouds();
     //检测物体
-	PointCld.detectObject();	
-	*/
+	PointCld.detectObject();
+
 	OptFlowTrack.SingleLKTrack(imgA,imgB,imgC);
 	imshow("cornerA", imgA);
 	imshow("cornerB", imgB);
 	imshow("cornerline", imgC);
+	*/
+	vector<KeyPoint> keypoints[2];
+	SurfFeatureDetector detector(400);
+	//检测suft特征点
+	detector.detect(leftg, keypoints[0]);
+	detector.detect(rightg, keypoints[1]);
+	//描述suft特征点
+	SurfDescriptorExtractor descriptor;
+	Mat descripfeature[2];
+	descriptor.compute(leftg, keypoints[0], descripfeature[0]);
+	descriptor.compute(rightg, keypoints[1], descripfeature[1]);
+	//计算匹配点
+	BruteForceMatcher<L2<float>> matcher;
+	vector<DMatch> matchpoint;
+	matcher.match(descripfeature[0], descripfeature[1], matchpoint);
+	//取误差最小的25个点
+	nth_element(matchpoint.begin(), matchpoint.begin()+24, matchpoint.end());
+	matchpoint.erase(matchpoint.begin()+25 , matchpoint.end());
+	//画出匹配图
+	Mat imgMatch;
+	drawMatches(leftg, keypoints[0], rightg, keypoints[1], matchpoint, imgMatch, Scalar(255, 0, 0));
+
+	imshow("suft", imgMatch);
 	if(waitKey(0) == 27) return 0;
 #endif
 
@@ -97,14 +121,13 @@ int main(void)
 		cout << "图像获取成功" << endl;
 		CvSize imgSize = cvGetSize(left);
 		CvMat* RefPair;
-		CvMat part;
-		
+		RefPair = cvCreateMat(imgSize.height, imgSize.width * 2, CV_8UC3);
+		CvMat part;		
 		//进行校正
 		if (STEREO_RECTIFY)
 		{
 			StCab.InitStereoRectify();
 			cout << "进行校正" << endl;
-			RefPair = cvCreateMat(imgSize.height, imgSize.width * 2, CV_8UC3);
 			cvNamedWindow("RefPair", 1);
 			cvMoveWindow("RefPair", 60, 60);
 		}
@@ -132,7 +155,6 @@ int main(void)
 #endif
 
 #ifdef OPTICALFLOW
-		OptFlowTrack.InitLKTrack();
 		namedWindow("flow");
 		moveWindow("flow", 60, 60);
 #endif
@@ -156,7 +178,7 @@ int main(void)
 #ifdef BACKGROUNGDIFF
 			Mat matLeft = Mat(left);			
 			Segmtn.BkgSuntract(matLeft);
-			imshow("test",matLeft);
+			//imshow("test",matLeft);
 			if (!Segmtn.FrFrameb.empty())
 			{
 				imshow("foreground", Segmtn.FrFrameb);
@@ -164,9 +186,8 @@ int main(void)
 #endif
 
 #ifdef OPTICALFLOW
-			Mat matleft = Mat(left);
-			OptFlowTrack.CtnLKTrack(matleft);
-			imshow("flow", matleft);
+			OptFlowTrack.CtnLKTrack(matLeft, Segmtn.FrFrameb); //使用前景作为mask
+			imshow("flow", matLeft);
 
 #endif
 
@@ -211,6 +232,10 @@ int main(void)
 				{
 					c = cvWaitKey(250);
 				}
+			}
+			if (c == 'r')
+			{
+				OptFlowTrack.needInit = true;
 			}
 			if (c == 27)
 			break;

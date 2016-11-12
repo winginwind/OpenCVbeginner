@@ -14,6 +14,7 @@ public:
 
 	Mat grayFramef;
 	Mat FrFramef;
+	Mat FrFramebInv;
 	Mat FrFrameb;
 	Mat BkFramef;
 

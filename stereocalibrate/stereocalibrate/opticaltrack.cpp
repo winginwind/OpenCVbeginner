@@ -33,20 +33,17 @@ void OpticalTrack::SingleLKTrack(Mat &imgA, Mat &imgB, Mat &imgC){
 	}
 }
 
-void OpticalTrack::InitLKTrack(void){
-	firstFrame = true;
-}
 
-void OpticalTrack::CtnLKTrack(Mat &frame){
+void OpticalTrack::CtnLKTrack(Mat &frame, Mat mask){
 	cvtColor(frame, gray, COLOR_RGB2GRAY);
-	if (true == firstFrame)
+	if (true == needInit)
 	{
 		prevGray = gray.clone();
-		goodFeaturesToTrack(prevGray, points[0], MAX_CORNERS,0.1, 10.0, Mat(), 3, 0, 0.04);
+		goodFeaturesToTrack(prevGray, points[0], MAX_CORNERS,0.1, 10.0, mask, 3, 0, 0.04);
 		cornerSubPix(prevGray,  points[0], Size(10,10), Size(-1,-1), 
 			TermCriteria(CV_TERMCRIT_ITER|CV_TERMCRIT_EPS,20,0.03));
-		firstFrame = false;
-	}else{
+		needInit = false;
+	}else if (!prevGray.empty() && !points[0].empty()){
 		vector<uchar> status;
 		vector<float> err;
 		calcOpticalFlowPyrLK(prevGray, gray, points[0], points[1], status, err, Size(21,21), 3,
@@ -57,7 +54,7 @@ void OpticalTrack::CtnLKTrack(Mat &frame){
 			if( !status[i] )
 				continue;
 			points[0][k++] = points[1][i];   //保存至上一帧
-			circle( frame, points[1][i], 3, Scalar(0,255,0), -1); //显示特征点
+			circle( frame, points[1][i], 3, Scalar(255,0,0), -1); //显示特征点
 		}
 		points[0].resize(k);
 		prevGray = gray.clone();
