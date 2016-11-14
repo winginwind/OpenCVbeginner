@@ -141,6 +141,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="handdetect.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="opticaltrack.cpp" />
     <ClCompile Include="picturegrub.cpp" />
@@ -150,6 +151,7 @@
     <ClCompile Include="stereomatch.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="handdetect.h" />
     <ClInclude Include="opticaltrack.h" />
     <ClInclude Include="picturegrub.h" />
     <ClInclude Include="pointcloud.h" />

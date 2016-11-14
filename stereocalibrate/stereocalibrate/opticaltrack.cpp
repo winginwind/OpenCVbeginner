@@ -10,7 +10,7 @@ OpticalTrack::~OpticalTrack(){
 
 void OpticalTrack::SingleLKTrack(Mat &imgA, Mat &imgB, Mat &imgC){
 	//得到跟踪的角点
-	;
+	
 	vector<Point2f> points[2];
 	goodFeaturesToTrack(imgA, points[0], MAX_CORNERS,0.1, 10.0, Mat(), 3, 0, 0.04);
 	cornerSubPix(imgA,  points[0], Size(10,10), Size(-1,-1), 

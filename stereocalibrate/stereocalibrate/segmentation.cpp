@@ -42,12 +42,9 @@ void Segmentation::InitBkgSub(){
 	firstFrame = true;
 }
 
-//帧差法与背景差分法融合
+//背景差分法
 void Segmentation::BkgSuntract(Mat &frame){
 	cvtColor(frame, grayFrame, CV_RGB2GRAY);
-	FileStorage fs("grayf.xml", FileStorage::WRITE);  
-	fs<<"vocabulary"<<grayFrame;  
-	fs.release();  
 	grayFrame.convertTo(grayFramef, CV_32F);
 	
 	if (true == firstFrame){
