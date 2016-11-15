@@ -44,7 +44,7 @@ void Segmentation::InitBkgSub(){
 
 //背景差分法
 void Segmentation::BkgSuntract(Mat &frame){
-	cvtColor(frame, grayFrame, CV_RGB2GRAY);
+	cvtColor(frame, grayFrame, CV_BGR2GRAY);
 	grayFrame.convertTo(grayFramef, CV_32F);
 	
 	if (true == firstFrame){
@@ -61,10 +61,14 @@ void Segmentation::BkgSuntract(Mat &frame){
 		//不要把前景加入背景
 		FrFramebInv.convertTo(FrFramebInv,CV_8UC1);
 		accumulateWeighted(grayFramef, BkFramef, 0.01 , FrFramebInv);  //更新背景防止光照变化
-		//检测其中的圆
+		//画出运动物体轮廓
 		Mat dec;
 		dec = FrFrameb.clone();
-		DetectCircle(dec, frame);
+		vector< vector<Point> > contours;
+		findContours(dec, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+		drawContours(frame, contours, -1, Scalar(255, 0, 0), 2);
+		//检测其中的圆		
+		//DetectCircle(dec, frame);
 	}
 }
 

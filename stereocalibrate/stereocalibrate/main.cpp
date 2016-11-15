@@ -5,7 +5,8 @@
 #include "segmentation.h"
 #include "opticaltrack.h"
 #include "handdetect.h"
-#include "nonfree/features2d.hpp"
+#include "features.h"
+
 using namespace std;
 
 #define SAVE_PIC        0             //保存图片用于标定
@@ -16,8 +17,9 @@ using namespace std;
 #define FRAMEDIFF       0             //使用帧差法
 #define BACKGROUNGDIFF  0             //使用背景差分法
 #define OPTICALFLOW     0             //使用光流法
-#define HANDDETECT      0             //手识别
-#define DISPLAY         0             //获取摄像头并显示
+#define HANDDETECT      0            //手势识别
+#define SUFT            1
+#define DISPLAY         1             //获取摄像头并显示
 #define SINGLE_FRAME                  //做简单测试
 
 
@@ -43,7 +45,9 @@ int main(void)
 {
 	Segmentation Segmtn(20,16,false);
 	OpticalTrack OptFlowTrack;
-	HandDetector HandDec;
+	HandDetector HandLeft;
+	HandDetector HandRight;
+	Features Featurepro;
 	//保存用于标定的照片
 	if(SAVE_PIC){
 		PicGrub.SaveCaliPicture();
@@ -56,58 +60,7 @@ int main(void)
 	StCab.LoadCameraPara();
 
 #ifdef SINGLE_FRAME
-	/*
-	//suft特征匹配
-	vector<KeyPoint> keypoints[2];
-	SurfFeatureDetector detector(400);
-	//检测suft特征点
-	detector.detect(leftg, keypoints[0]);
-	detector.detect(rightg, keypoints[1]);
-	//描述suft特征点
-	SurfDescriptorExtractor descriptor;
-	Mat descripfeature[2];
-	descriptor.compute(leftg, keypoints[0], descripfeature[0]);
-	descriptor.compute(rightg, keypoints[1], descripfeature[1]);
-	//计算匹配点
-	//BruteForceMatcher<L2<float>> matcher;
-	FlannBasedMatcher matcher;
-	vector<DMatch> matchpoint;
-	matcher.match(descripfeature[0], descripfeature[1], matchpoint);
-	//找到好的匹配点
-	double mindis = 100;
-	for (int i = 0; i < matchpoint.size(); i++)
-	{
-		if (matchpoint[i].distance < mindis)
-		{
-			mindis = matchpoint[i].distance;
-		}
-	}
-	vector<DMatch> goodMatchs;
-	for (int i = 0; i < matchpoint.size(); i++)
-	{
-		if (matchpoint[i].distance < 2 * mindis)
-		{
-			goodMatchs.push_back(matchpoint[i]);
-		}
-	}
-	//画出对应点
-	vector<Point2f> matchesp[2];
-	for (int i = 0; i < goodMatchs.size(); i++)
-	{
-		matchesp[0].push_back(keypoints[0][goodMatchs[i].queryIdx].pt);
-		matchesp[1].push_back(keypoints[1][goodMatchs[i].trainIdx].pt);
-	}
-	circle(leftg,Point(matchesp[0][0]), 4, Scalar(255,0,0),-1);
-	circle(rightg,Point(matchesp[1][0]), 4, Scalar(255,0,0),-1);
-	circle(leftg,Point(matchesp[0][1]), 4, Scalar(0,255,0),-1);
-	circle(rightg,Point(matchesp[1][1]), 4, Scalar(0,255,0),-1);
-	imshow("left", leftg);
-	imshow("right", rightg);
-	//画出匹配图
-	Mat imgMatch;
-	drawMatches(leftg, keypoints[0], rightg, keypoints[1], goodMatchs, imgMatch, Scalar(255, 0, 0));
-	imshow("suft", imgMatch);
-	*/
+	
 
 	if(waitKey(0) == 27) return 0;
 #endif
@@ -161,8 +114,8 @@ int main(void)
 		
 		if (BACKGROUNGDIFF){
 			Segmtn.InitBkgSub();
-			namedWindow("foreground");
-			moveWindow("foreground", 60, 60);
+			namedWindow("foreback");
+			moveWindow("foreback", 60, 60);
 		}
 
 		if (OPTICALFLOW){
@@ -171,29 +124,39 @@ int main(void)
 		}
 
 		if (HANDDETECT){
-			namedWindow("hand");
-			moveWindow("hand", 60, 60);
+			namedWindow("handleft");
+			moveWindow("handleft", 60, 60);
+			namedWindow("handright");
+			moveWindow("handright", 100, 60);
+		}
+
+		if (SUFT)
+		{
+			namedWindow("suft");
+			moveWindow("suft", 60, 60);
 		}
 		while (1)
 		{		
 			left = cvQueryFrame(capture1);
-			right = cvQueryFrame(capture2);			
+			right = cvQueryFrame(capture2);	
+			Mat matLeft = Mat(left);
+			Mat matright = Mat(right);
 			//cvShowImage("left", left);
 			//cvShowImage("right", right);
 			//用于保存单张图片
 			//PicGrub.SaveSingeFrame(left,right);
 			if (FRAMEDIFF){
-				Mat matleft = Mat(left);
-				Segmtn.CalDiffFrame(matleft);
+				Mat diffframe = matLeft.clone();
+				Segmtn.CalDiffFrame(diffframe);
 				if(!Segmtn.diffFrame.empty()){
 					imshow("diffframe", Segmtn.diffFrame);
 				}
 			}
 
-			if (BACKGROUNGDIFF){
-				Mat matLeft = Mat(left);			
-				Segmtn.BkgSuntract(matLeft);
-				//imshow("test",matLeft);
+			if (BACKGROUNGDIFF){				
+				Mat forebackframe = matLeft.clone();
+				Segmtn.BkgSuntract(forebackframe);
+				//imshow("foreback",forebackframe);
 				if (!Segmtn.FrFrameb.empty())
 				{
 					imshow("foreground", Segmtn.FrFrameb);
@@ -201,17 +164,28 @@ int main(void)
 			}
 
 			if (OPTICALFLOW){
-				Mat matLeft = Mat(left);	
-				OptFlowTrack.CtnLKTrack(matLeft, Segmtn.FrFrameb); //使用前景作为mask
-				imshow("flow", matLeft);
+				Mat optframe = matLeft.clone();	
+				OptFlowTrack.CtnLKTrack(optframe, Segmtn.FrFrameb); //使用前景作为mask
+				imshow("flow", optframe);
 			}
 
 			if (HANDDETECT){
-				Mat matLeft = Mat(left);	
-				HandDec.HandDetect(matLeft);
-				imshow("hand", matLeft);
-				cout << HandDec.handLoc.x << " " << HandDec.handLoc.y << endl;
+				Mat handLeft = matLeft.clone();
+				Mat handRight = matright.clone();
+				HandLeft.HandDetect(handLeft);
+				HandRight.HandDetect(handRight);
+				imshow("handleft", handLeft);
+				imshow("handright", handRight);
 			}
+
+			if (SUFT)
+			{
+				Mat frameleft = matLeft.clone();
+				Mat frameright = matright.clone();
+				Featurepro.suftDetectMatch(frameleft, frameright, HandLeft.handMask, HandRight.handMask);
+				imshow("suft", Featurepro.imgMatch);
+			}
+
 			if (STEREO_RECTIFY){
 				StCab.StereoRectify(left, right);
 				cvGetCols(RefPair, &part, 0, imgSize.width);  

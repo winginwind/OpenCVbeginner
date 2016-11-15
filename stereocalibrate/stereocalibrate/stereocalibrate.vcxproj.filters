@@ -39,6 +39,9 @@
     <ClCompile Include="handdetect.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="features.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stereocalib.h">
@@ -60,6 +63,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="handdetect.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="features.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

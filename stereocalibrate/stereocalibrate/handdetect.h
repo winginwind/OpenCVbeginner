@@ -10,6 +10,8 @@ public:
 	Mat handMask;
 	Mat frameHSV;
 	Point2f handLoc;
+	HandDetector();
+	~HandDetector();
 	void HandDetect(Mat &frame);
 };
 
