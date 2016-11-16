@@ -17,7 +17,7 @@ using namespace std;
 #define FRAMEDIFF       0             //使用帧差法
 #define BACKGROUNGDIFF  0             //使用背景差分法
 #define OPTICALFLOW     0             //使用光流法
-#define HANDDETECT      0            //手势识别
+#define HANDDETECT      1             //手势识别
 #define SUFT            1
 #define DISPLAY         1             //获取摄像头并显示
 #define SINGLE_FRAME                  //做简单测试
@@ -127,13 +127,13 @@ int main(void)
 			namedWindow("handleft");
 			moveWindow("handleft", 60, 60);
 			namedWindow("handright");
-			moveWindow("handright", 100, 60);
+			moveWindow("handright", 700, 60);
 		}
 
 		if (SUFT)
 		{
 			namedWindow("suft");
-			moveWindow("suft", 60, 60);
+			moveWindow("suft", 60, 120);
 		}
 		while (1)
 		{		
@@ -169,22 +169,31 @@ int main(void)
 				imshow("flow", optframe);
 			}
 
+			
 			if (HANDDETECT){
 				Mat handLeft = matLeft.clone();
 				Mat handRight = matright.clone();
 				HandLeft.HandDetect(handLeft);
 				HandRight.HandDetect(handRight);
-				imshow("handleft", handLeft);
-				imshow("handright", handRight);
+				//imshow("handleft", handLeft);
+				//imshow("handright", handRight);
+				imshow("handleft", HandLeft.handMask);
+				imshow("handright", HandRight.handMask);
 			}
-
+			clock_t tStart = clock();
+			
 			if (SUFT)
 			{
 				Mat frameleft = matLeft.clone();
 				Mat frameright = matright.clone();
 				Featurepro.suftDetectMatch(frameleft, frameright, HandLeft.handMask, HandRight.handMask);
-				imshow("suft", Featurepro.imgMatch);
+				if (!Featurepro.imgMatch.empty())
+				{
+					imshow("suft", Featurepro.imgMatch);
+				}			
 			}
+			clock_t tPerFrame = clock() - tStart;
+			cout << tPerFrame << endl;
 
 			if (STEREO_RECTIFY){
 				StCab.StereoRectify(left, right);
@@ -204,10 +213,10 @@ int main(void)
 
 			if (STEREO_BMMATCH)
 			{
-				clock_t tStart = clock();
+				//clock_t tStart = clock();
 				Mat vdisp(imgSize.height, imgSize.width, CV_8U);
 				Stmatch.BMMatch(left, right, vdisp);
-				clock_t tPerFrame = clock() - tStart;
+				//clock_t tPerFrame = clock() - tStart;
 				//cout << tPerFrame << endl;			
 				//imshow("disparity", vdisp);
 				Stmatch.vdisp = vdisp;

@@ -31,8 +31,10 @@ void HandDetector::HandDetect(Mat &frame){
 			filterContours.push_back(contours[i]);
 		}
 	}
+	handMask = Mat::zeros(handMask.size(), CV_8UC1);
 	vector<Point> hull;
 	if (filterContours.size() > 0){
+		drawContours(handMask, filterContours, -1, Scalar(255), -1);
 		drawContours(frame, filterContours, -1, Scalar(255, 0, 0), 2);
 		convexHull(Mat(filterContours[0]), hull, true);  
 		int hullcount = (int)hull.size();

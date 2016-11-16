@@ -6,14 +6,13 @@ using namespace cv;
 
 class Features{
 private:
-	SurfFeatureDetector detector;
-	SurfDescriptorExtractor descriptor;
-	FlannBasedMatcher matcher;
+	
+	
+	
 public:
-	vector<KeyPoint> keypoints[2];	
-	Mat descripfeature[2];	
-	vector<DMatch> matchpoint;
-	vector<DMatch> goodMatchs;
+	
+	
+	
 	Mat imgMatch;
 	Features();
 	~Features();

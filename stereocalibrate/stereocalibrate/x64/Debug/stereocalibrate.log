@@ -1,16 +1,17 @@
-﻿生成启动时间为 2016/11/15 16:48:48。
+﻿生成启动时间为 2016/11/16 11:13:27。
      1>项目“E:\cv\OpenCVbeginner\stereocalibrate\stereocalibrate\stereocalibrate.vcxproj”在节点 2 上(build 个目标)。
      1>InitializeBuildStatus:
          正在创建“x64\Debug\stereocalibrate.unsuccessfulbuild”，因为已指定“AlwaysCreate”。
        ClCompile:
-         D:\Program File\vs2010\VC\bin\x86_amd64\CL.exe /c /Zi /nologo /W3 /WX- /Od /D WIN32 /D _DEBUG /D _CONSOLE /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"x64\Debug\\" /Fd"x64\Debug\vc100.pdb" /Gd /TP /errorReport:prompt features.cpp main.cpp
-         features.cpp
-         Generating Code...
-         Compiling...
+         D:\Program File\vs2010\VC\bin\x86_amd64\CL.exe /c /Zi /nologo /W3 /WX- /Od /D WIN32 /D _DEBUG /D _CONSOLE /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"x64\Debug\\" /Fd"x64\Debug\vc100.pdb" /Gd /TP /errorReport:prompt features.cpp handdetect.cpp main.cpp
          main.cpp
-     1>main.cpp(264): warning C4101: “phyx”: 未引用的局部变量
-     1>main.cpp(264): warning C4101: “phyy”: 未引用的局部变量
-     1>main.cpp(264): warning C4101: “phyz”: 未引用的局部变量
+     1>main.cpp(270): warning C4101: “phyx”: 未引用的局部变量
+     1>main.cpp(270): warning C4101: “phyy”: 未引用的局部变量
+     1>main.cpp(270): warning C4101: “phyz”: 未引用的局部变量
+         handdetect.cpp
+     1>handdetect.cpp(60): warning C4244: “=”: 从“int”转换到“float”，可能丢失数据
+     1>handdetect.cpp(61): warning C4244: “=”: 从“int”转换到“float”，可能丢失数据
+         features.cpp
          Generating Code...
        ManifestResourceCompile:
          所有输出均为最新。
@@ -25,7 +26,6 @@
          x64\Debug\segmentation.obj
          x64\Debug\stereocalib.obj
          x64\Debug\stereomatch.obj
-     1>picturegrub.obj : warning LNK4099: 未找到 PDB“vc100.pdb”(使用“picturegrub.obj”或在“E:\cv\OpenCVbeginner\stereocalibrate\x64\Debug\vc100.pdb”中寻找)；正在链接对象，如同没有调试信息一样
          stereocalibrate.vcxproj -> E:\cv\OpenCVbeginner\stereocalibrate\x64\Debug\stereocalibrate.exe
        Manifest:
          C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\bin\mt.exe /nologo /verbose /out:"x64\Debug\stereocalibrate.exe.embed.manifest" /manifest x64\Debug\stereocalibrate.exe.intermediate.manifest
@@ -40,4 +40,4 @@
 
 生成成功。
 
-已用时间 00:00:04.62
+已用时间 00:00:04.49
