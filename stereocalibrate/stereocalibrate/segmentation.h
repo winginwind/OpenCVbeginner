@@ -1,7 +1,7 @@
 #ifndef _SEGMENTATION_H_
 #define _SEGMENTATION_H_
 #include "cv.h"
-#include "video\background_segm.hpp"
+#include "video/background_segm.hpp"
 using namespace cv;
 class Segmentation{
 public:
